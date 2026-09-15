@@ -110,6 +110,11 @@ class Tag(Base):
         secondaryjoin=tag_id == TagImplication.child_id,
         lazy="joined",
     )
+    user_blocklists = sa.orm.relationship(
+        "UserTagBlocklist",
+        back_populates="tag",
+        cascade="all, delete-orphan",
+    )
 
     post_count = sa.orm.column_property(
         sa.sql.expression.select(
