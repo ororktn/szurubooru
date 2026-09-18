@@ -46,10 +46,13 @@ USER app
 
 ARG BUILD_INFO="docker-development"
 ENV BUILD_INFO=${BUILD_INFO}
-ENV BACKEND_HOST="server"
 
 ENV FRONTEND_PORT=${FRONTEND_PORT:-8080}
-EXPOSE ${FRONTEND_PORT:-8080}
+EXPOSE ${FRONTEND_PORT}
+
+ENV BACKEND_HOST=${BACKEND_HOST:-"server"}
+ENV BACKEND_PORT=${BACKEND_PORT:-6666}
+ENV BASE_URL=${BASE_URL:-/}
 
 CMD ["/opt/app/client/docker-start-dev.sh"]
 VOLUME ["/data"]
@@ -82,7 +85,11 @@ RUN rm -rf /var/www && ln -sf /opt/app/client/public/ /var/www
 USER app
 
 ENV FRONTEND_PORT=${FRONTEND_PORT:-8080}
-EXPOSE ${FRONTEND_PORT:-8080}
+EXPOSE ${FRONTEND_PORT}
+
+ENV BACKEND_HOST=${BACKEND_HOST:-127.0.0.1}
+ENV BACKEND_PORT=${BACKEND_PORT:-6666}
+ENV BASE_URL=${BASE_URL:-/}
 
 CMD ["/opt/app/client/docker-start.sh"]
 VOLUME ["/data"]

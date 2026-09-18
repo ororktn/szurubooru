@@ -19,10 +19,10 @@ services:
       #POSTGRES_DB: defaults to same as POSTGRES_USER
       #POSTGRES_PORT: 5432
       #LOG_SQL: 0 (1 for verbose SQL logs)
-      THREADS: 1
+      THREADS:
     volumes:
       - "${MOUNT_DATA}:/data"
-      - "./server/config.yaml:/opt/app/config.yaml"
+      - "./server/config.yaml:/opt/app/server/config.yaml"
 
   client:
     image: szurubooru/client:latest
@@ -42,5 +42,10 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_PASSWORD}
+      interval: 10s
+      timeout: 3s
+      retries: 3
     volumes:
       - "${MOUNT_SQL}:/var/lib/postgresql"

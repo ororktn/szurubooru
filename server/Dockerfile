@@ -1,8 +1,10 @@
 ARG ALPINE_VERSION=3.22
 
-
+### Pre-build ###
 FROM alpine:$ALPINE_VERSION AS prereqs
-WORKDIR /opt/app
+
+RUN mkdir -p /opt/app/server
+WORKDIR /opt/app/server
 
 RUN apk --no-cache add \
         python3 \
@@ -33,12 +35,19 @@ RUN pip3 install --no-cache-dir --disable-pip-version-check --break-system-packa
         "pillow-avif-plugin>=1.4.6"
 RUN apk --no-cache del py3-pip
 
-COPY ./ /opt/app/
-RUN rm -rf /opt/app/szurubooru/tests
+COPY --chown=app:app . ./
+RUN rm -rf ./szurubooru/tests
 
+ARG PUID=1000
+ARG PGID=1000
 
+RUN addgroup -g ${PGID} app \
+    && adduser -SDH -h /opt/app -g '' -G app -u ${PUID} app \
+    && chown -R app:app /opt/app
+
+### testing ###
 FROM --platform=$BUILDPLATFORM prereqs AS testing
-WORKDIR /opt/app
+WORKDIR /opt/app/server
 
 RUN apk --no-cache add \
         py3-pip \
@@ -49,78 +58,58 @@ RUN apk --no-cache add \
         pytest-pgsql \
         pytest-xdist \
         freezegun \
- && apk --no-cache del py3-pip \
- && addgroup app \
- && adduser -SDH -h /opt/app -g '' -G app app \
- && chown app:app /opt/app
+ && apk --no-cache del py3-pip
 
-COPY --chown=app:app ./szurubooru/tests /opt/app/szurubooru/tests/
+COPY --chown=app:app ./szurubooru/tests ./szurubooru/tests/
 
 ENV TEST_ENVIRONMENT="true"
 USER app
 ENTRYPOINT ["pytest", "--tb=short"]
 CMD ["szurubooru/"]
 
-
+### Development ###
 FROM prereqs AS development
-WORKDIR /opt/app
+WORKDIR /opt/app/server
 
-ARG PUID=1000
-ARG PGID=1000
-
+USER root
+RUN mkdir -p /data && chown -R app:app /data
 RUN apk --no-cache add \
     dumb-init \
     py3-pip \
     py3-setuptools \
     py3-waitress \
     && pip3 install --no-cache-dir --disable-pip-version-check --break-system-packages \
-    hupper \
-    && mkdir -p /opt/app /data \
-    && addgroup -g ${PGID} app \
-    && adduser -SDH -h /opt/app -g '' -G app -u ${PUID} app \
-    && chown -R app:app /opt/app /data
-
+    hupper
 USER app
-CMD ["/opt/app/docker-start-dev.sh"]
 
-ARG PORT=6666
-ENV PORT=${PORT}
-EXPOSE ${PORT}
+ENV BACKEND_PORT=${BACKEND_PORT:-6666}
+EXPOSE ${BACKEND_PORT}
 
-ARG THREADS=4
-ENV THREADS=${THREADS}
+ENV THREADS_WAITRESS=${THREADS:-4}
 
+CMD ["/opt/app/server/docker-start-dev.sh"]
 VOLUME ["/data/"]
 
 
+### release ###
 FROM prereqs AS release
 
-COPY ./ /opt/app/
-RUN rm -rf /opt/app/szurubooru/tests
+WORKDIR /opt/app/server
 
-WORKDIR /opt/app
-
-ARG PUID=1000
-ARG PGID=1000
-
+USER root
+RUN mkdir -p /data && chown -R app:app /data
 RUN apk --no-cache add \
         dumb-init \
         py3-setuptools \
-        py3-waitress \
- && mkdir -p /opt/app /data \
- && addgroup -g ${PGID} app \
- && adduser -SDH -h /opt/app -g '' -G app -u ${PUID} app \
- && chown -R app:app /opt/app /data
+        py3-waitress
 
 USER app
-CMD ["/opt/app/docker-start.sh"]
+CMD ["/opt/app/server/docker-start.sh"]
 
-ARG PORT=6666
-ENV PORT=${PORT}
-EXPOSE ${PORT}
+ENV BACKEND_PORT=${BACKEND_PORT:-6666}
+EXPOSE ${BACKEND_PORT}
 
-ARG THREADS=4
-ENV THREADS=${THREADS}
+ENV THREADS_WAITRESS=${THREADS:-4}
 
 VOLUME ["/data/"]
 

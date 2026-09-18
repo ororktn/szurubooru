@@ -1,13 +1,13 @@
 #!/usr/bin/dumb-init /bin/sh
 
 # Integrate environment variables
-sed -i "s|__BACKEND__|${BACKEND_HOST:-127.0.0.1}|" \
+sed -i "s|__BACKEND__|${BACKEND_HOST}|" \
   /etc/nginx/nginx.conf
-sed -i "s|__LISTEN_PORT__|${FRONTEND_PORT:-8080}|g" \
+sed -i "s|__LISTEN_PORT__|${FRONTEND_PORT}|g" \
   /etc/nginx/nginx.conf
-sed -i "s|__BACKEND_PORT__|${BACKEND_PORT:-6666}|" \
+sed -i "s|__BACKEND_PORT__|${BACKEND_PORT}|" \
   /etc/nginx/nginx.conf
-sed -i "s|__BASEURL__|${BASE_URL:-/}|g" \
+sed -i "s|__BASEURL__|${BASE_URL}|g" \
   /opt/app/client/public/index.htm \
   /opt/app/client/public/manifest.json
 

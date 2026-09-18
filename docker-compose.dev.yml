@@ -21,12 +21,14 @@ services:
       #POSTGRES_DB: defaults to same as POSTGRES_USER
       #POSTGRES_PORT: 5432
       #LOG_SQL: 0 (1 for verbose SQL logs)
-      THREADS: 1
+      THREADS_WAITRESS: ${THREADS_WAITRESS}
       BACKEND_PORT: ${BACKEND_PORT}
     restart: unless-stopped
     volumes:
       - "data:/data"
-      - "./server/:/opt/app/"
+      - "./server/:/opt/app/server"
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
 
   client:
     build:
@@ -40,7 +42,7 @@ services:
     restart: unless-stopped
     volumes:
       - "data:/data:ro"
-      - "./client/:/opt/app/szurubooru"
+      - "./client/:/opt/app/client"
       - "/opt/app/public/"
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
@@ -51,6 +53,11 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_PASSWORD}
+      interval: 10s
+      timeout: 3s
+      retries: 3
     volumes:
       - "sql:/var/lib/postgresql"
 
