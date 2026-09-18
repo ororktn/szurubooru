@@ -1,8 +1,7 @@
 worker_processes 1;
-user nginx;
 
 error_log /dev/stderr warn;
-pid /var/run/nginx.pid;
+pid /opt/app/nginx.pid;
 
 events {
     worker_connections 1024;

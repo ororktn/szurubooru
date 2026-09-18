@@ -1,56 +1,90 @@
-FROM --platform=$BUILDPLATFORM node:lts-alpine as development
+### BUILDER ###
+FROM --platform=$BUILDPLATFORM alpine:latest AS builder
+
+ARG PUID=1000
+ARG PGID=1000
+ENV NODE_PATH=/opt/app/node_modules
+
+# Init homedir
+RUN mkdir -p /opt/app
 WORKDIR /opt/app
 
-RUN apk --no-cache add \
+# Add dependencies
+RUN apk add --no-cache --update nodejs \
     dumb-init \
-    nginx \
+    yarn
+
+RUN addgroup -g ${PGID} app \
+    && adduser -SDH -h /opt/app -g '' -G app -u ${PUID} app \
+    && chown -R app:app /opt/app
+USER app
+
+RUN mkdir -p /opt/app/client
+
+WORKDIR /opt/app/client
+COPY --chown=app . ./
+RUN yarn install --modules-folder ${NODE_PATH}
+
+ARG BUILD_INFO="docker-latest"
+ARG CLIENT_BUILD_ARGS=""
+RUN BASE_URL="__BASEURL__" yarn run build --modules-folder ${NODE_PATH} --gzip ${CLIENT_BUILD_ARGS}
+
+
+### DEV ENV ###
+FROM builder AS development
+
+WORKDIR /opt/app/client
+
+# Add dev dependencies
+USER root
+RUN apk add --no-cache --update nginx \
     git
-
-RUN ln -sf /opt/app/nginx.conf.docker /etc/nginx/nginx.conf
-RUN rm -rf /var/www
-RUN ln -sf /opt/app/public/ /var/www
-
-COPY package.json package-lock.json ./
-RUN npm install
+RUN chown -R app:app /var/log/nginx /var/lib/nginx /etc/nginx
+RUN ln -sf /opt/app/client/nginx.conf.docker /etc/nginx/nginx.conf
+RUN rm -rf /var/www && ln -sf /opt/app/client/public/ /var/www
+USER app
 
 ARG BUILD_INFO="docker-development"
 ENV BUILD_INFO=${BUILD_INFO}
 ENV BACKEND_HOST="server"
 
-CMD ["/opt/app/docker-start-dev.sh"]
+ENV FRONTEND_PORT=${FRONTEND_PORT:-8080}
+EXPOSE ${FRONTEND_PORT:-8080}
+
+CMD ["/opt/app/client/docker-start-dev.sh"]
 VOLUME ["/data"]
 
 
-FROM --platform=$BUILDPLATFORM node:lts as builder
-WORKDIR /opt/app
+### RELEASE ###
+FROM alpine:latest AS release
 
-COPY package.json package-lock.json ./
-RUN npm install
+ARG PUID=1000
+ARG PGID=1000
 
-COPY . ./
+RUN mkdir -p /opt/app/client
+WORKDIR /opt/app/client
 
-ARG BUILD_INFO="docker-latest"
-ARG CLIENT_BUILD_ARGS=""
-RUN BASE_URL="__BASEURL__" node build.js --gzip ${CLIENT_BUILD_ARGS}
+# Add release dependencies
+RUN apk add --no-cache --update dumb-init \
+    nginx
+RUN addgroup -g ${PGID} app \
+    && adduser -SDH -h /opt/app -g '' -G app -u ${PUID} app \
+    && chown -R app:app /opt/app /var/log/nginx /var/lib/nginx /etc/nginx
+USER app
 
+COPY --chown=app docker-start.sh ./
+COPY --chown=app nginx.conf.docker ./nginx.conf
+COPY --chown=app --from=builder /opt/app/client/public/ ./public
 
-FROM --platform=$BUILDPLATFORM scratch as approot
+USER root
+RUN ln -sf /opt/app/client/nginx.conf.docker /etc/nginx/nginx.conf
+RUN rm -rf /var/www && ln -sf /opt/app/client/public/ /var/www
+USER app
 
-COPY docker-start.sh /
+ENV FRONTEND_PORT=${FRONTEND_PORT:-8080}
+EXPOSE ${FRONTEND_PORT:-8080}
 
-WORKDIR /etc/nginx
-COPY nginx.conf.docker ./nginx.conf
-
-WORKDIR /var/www
-COPY --from=builder /opt/app/public/ .
-
-
-FROM nginx:alpine as release
-
-RUN apk --no-cache add dumb-init
-COPY --from=approot / /
-
-CMD ["/docker-start.sh"]
+CMD ["/opt/app/client/docker-start.sh"]
 VOLUME ["/data"]
 
 ARG DOCKER_REPO

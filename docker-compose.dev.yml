@@ -22,7 +22,8 @@ services:
       #POSTGRES_PORT: 5432
       #LOG_SQL: 0 (1 for verbose SQL logs)
       THREADS: 1
-      PORT: ${BACKEND_PORT}
+      BACKEND_PORT: ${BACKEND_PORT}
+    restart: unless-stopped
     volumes:
       - "data:/data"
       - "./server/:/opt/app/"
@@ -33,12 +34,16 @@ services:
       target: development
     depends_on:
       - server
+    environment:
+      BACKEND_HOST: server
+      FRONTEND_PORT: ${FRONTEND_PORT}
+    restart: unless-stopped
     volumes:
       - "data:/data:ro"
-      - "./client/:/opt/app/"
+      - "./client/:/opt/app/szurubooru"
       - "/opt/app/public/"
     ports:
-      - "${PORT}:80"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
 
   sql:
     image: postgres:18-alpine

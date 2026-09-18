@@ -62,6 +62,7 @@ const chokidar = require('chokidar');
 const WebSocket = require('ws');
 var PrettyError = require('pretty-error');
 var pe = new PrettyError();
+var fontAwesomePath = path.join(require.resolve('glob'), "../../font-awesome");
 
 function readTextFile(path) {
     return fs.readFileSync(path, 'utf-8');
@@ -144,7 +145,7 @@ function bundleCss() {
     }
 
     fs.copyFileSync(
-        './node_modules/font-awesome/css/font-awesome.min.css',
+        fontAwesomePath + '/css/font-awesome.min.css',
         './public/css/vendor.min.css');
     if (process.argv.includes('--gzip')) {
         gzipFile('./public/css/vendor.min.css');
@@ -246,7 +247,7 @@ function bundleBinaryAssets() {
     console.info('Copied images');
 
     fs.copyFileSync('./fonts/open_sans.woff2', './public/fonts/open_sans.woff2')
-    for (let file of glob.sync('./node_modules/font-awesome/fonts/*.*')) {
+    for (let file of glob.sync(fontAwesomePath + '/fonts/*.*')) {
         if (fs.lstatSync(file).isDirectory()) {
             continue;
         }
