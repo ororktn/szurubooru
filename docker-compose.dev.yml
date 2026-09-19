@@ -46,6 +46,7 @@ services:
       - "/opt/app/public/"
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+      - "8081:8081" # Websocket for dev env, see commit ee7e9ef2a364c8e79e964b8759206b07905723d5
 
   sql:
     image: postgres:18-alpine
