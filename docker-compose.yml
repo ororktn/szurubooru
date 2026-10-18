@@ -6,6 +6,7 @@ services:
 
   server:
     image: szurubooru/server:latest
+    restart: unless-stopped
     depends_on:
       - sql
     environment:
@@ -26,6 +27,7 @@ services:
 
   client:
     image: szurubooru/client:latest
+    restart: unless-stopped
     depends_on:
       - server
     environment:
