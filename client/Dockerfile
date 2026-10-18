@@ -80,7 +80,7 @@ COPY --chown=app nginx.conf.docker ./nginx.conf
 COPY --chown=app --from=builder /opt/app/client/public/ ./public
 
 USER root
-RUN ln -sf /opt/app/client/nginx.conf.docker /etc/nginx/nginx.conf
+RUN ln -sf /opt/app/client/nginx.conf /etc/nginx/nginx.conf
 RUN rm -rf /var/www && ln -sf /opt/app/client/public/ /var/www
 USER app
 
