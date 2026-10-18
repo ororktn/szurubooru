@@ -45,7 +45,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     healthcheck:
-      test: pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_PASSWORD}
+      test: pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_USER}
       interval: 10s
       timeout: 3s
       retries: 3
